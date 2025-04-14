@@ -18,6 +18,13 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup({
   'Townk/vim-autoclose',
   'fatih/vim-go',
+  {'ggml-org/llama.vim',
+    init = function()
+      vim.g.llama_config = {
+        show_info = 0
+      }
+    end
+  },
   'godlygeek/tabular',
   'neovim/nvim-lspconfig',
   'scrooloose/nerdcommenter',
@@ -25,6 +32,7 @@ require('lazy').setup({
   'tpope/vim-abolish',
   'tpope/vim-endwise',
   'tpope/vim-fugitive',
+  'tpope/vim-git',
   'tpope/vim-haml',
   'tpope/vim-rails',
   'tpope/vim-surround',
@@ -75,6 +83,7 @@ vim.schedule(function()
   vim.opt.clipboard = 'unnamedplus'
 end)
 
+
 vim.opt.directory= '/tmp/' -- Set temporary directory (don't litter local dir with swp/tmp files)
 vim.opt.swapfile = false   -- No swap files when editing please
 vim.opt.wrap     = false   -- Disable line wrapping
@@ -103,6 +112,7 @@ local capabilities = require('cmp_nvim_lsp').default_capabilities()
 lsp.cssls.setup { capabilities = capabilities}
 lsp.elmls.setup { capabilities = capabilities}
 lsp.rubocop.setup { capabilities = capabilities}
+lsp.ts_ls.setup { capabilities = capabilities} -- typescript / javascript
 lsp.sorbet.setup {
   cmd = {
     'ssh',
