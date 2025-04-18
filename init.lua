@@ -21,7 +21,9 @@ require('lazy').setup({
   {'ggml-org/llama.vim',
     init = function()
       vim.g.llama_config = {
-        show_info = 0
+        show_info = 0,
+        keymap_accept_full = "<Space><Space>",
+        keymap_accept_line = "<S-Space>",
       }
     end
   },
@@ -38,6 +40,7 @@ require('lazy').setup({
   'tpope/vim-surround',
   'tpope/vim-unimpaired',
   'vim-ruby/vim-ruby',
+  'rktjmp/lush.nvim',
   {
     'junegunn/fzf',
     build = './install --all',
@@ -48,7 +51,7 @@ require('lazy').setup({
       vim.g.fzf_vim = {
         preview_window = {}
       }
-      vim.keymap.set('n', '<leader>fa', ':Ag!', { desc = 'FZF Find Files' })
+      vim.keymap.set('n', '<leader>fa', ':Ag!', { desc = 'FZF search files' })
       vim.keymap.set('n', '<leader>ff', '<cmd>Files!<CR>', { desc = 'FZF Find Files' })
     end
   },
@@ -56,25 +59,29 @@ require('lazy').setup({
   'hrsh7th/cmp-nvim-lsp',
   'hrsh7th/cmp-vsnip',
   'hrsh7th/vim-vsnip',
-  {
-    "zenbones-theme/zenbones.nvim",
-    -- Optionally install Lush. Allows for more configuration or extending the colorscheme
-    -- If you don't want to install lush, make sure to set g:zenbones_compat = 1
-    -- In Vim, compat mode is turned on as Lush only works in Neovim.
-    dependencies = "rktjmp/lush.nvim",
-    lazy = false,
-    priority = 1000,
-     --you can set set configuration options here
-    config = function()
-      vim.g.zenbones_darken_comments = 45
-      vim.g.zenbones_darkness = 'stark'
-      vim.cmd.colorscheme('zenbones')
-      vim.opt.termguicolors = true
-      vim.opt.background= 'dark'
-    end
-}
+  {'rktjmp/lush.nvim',
+    { dir = '/Users/johnweir/src/github.com/jweir/trumono', lazy = false },
+  }
+  --{
+    --"zenbones-theme/zenbones.nvim",
+    ---- Optionally install Lush. Allows for more configuration or extending the colorscheme
+    ---- If you don't want to install lush, make sure to set g:zenbones_compat = 1
+    ---- In Vim, compat mode is turned on as Lush only works in Neovim.
+    --dependencies = "rktjmp/lush.nvim",
+    --lazy = false,
+    --priority = 1000,
+    ----you can set set configuration options here
+    --config = function()
+      --vim.g.zenbones_darken_comments = 45
+      --vim.g.zenbones_darkness = 'stark'
+      --vim.cmd.colorscheme('zenbones')
+      --vim.opt.termguicolors = true
+      --vim.opt.background= 'dark'
+    --end
+  --}
 })
 
+vim.cmd.colorscheme('trumono')
 vim.opt.mouse = 'a'
 vim.opt.mousefocus = true
 vim.opt.mousehide = true
@@ -106,24 +113,45 @@ vim.keymap.set('n', '<Leader>s', ':%s/\\<<C-r><C-w>\\>/', { noremap = true })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
 -- LSPs
-lsp = require('lspconfig')
+local lsp = require('lspconfig')
+
+-- Function to determine the correct command based on current directory
+local function get_sorbet_cmd()
+  local cwd = vim.fn.getcwd()
+
+  -- Check if we're in a specific directory
+  if string.match(cwd, "pharos") or string.match(cwd, "ams") then
+    -- Remote sorbet setup for the pharos project
+    return {
+      'ssh',
+      'deploy@dev.pharosams.com',
+      'srb',
+      'tc',
+      '--lsp',
+      '--enable-all-experimental-lsp-features',
+      '--enable-experimental-requires-ancestor',
+      '/data/pharos/ams/current'
+    }
+  else
+    -- Default local sorbet setup
+    return {
+      'srb',
+      'tc',
+      '--lsp',
+      '--enable-all-experimental-lsp-features'
+    }
+  end
+end
 
 local capabilities = require('cmp_nvim_lsp').default_capabilities()
 lsp.cssls.setup { capabilities = capabilities}
+lsp.cssls.setup { capabilities = capabilities}
 lsp.elmls.setup { capabilities = capabilities}
+lsp.gopls.setup { capabilities = capabilities}
 lsp.rubocop.setup { capabilities = capabilities}
 lsp.ts_ls.setup { capabilities = capabilities} -- typescript / javascript
 lsp.sorbet.setup {
-  cmd = {
-    'ssh',
-    'deploy@dev.pharosams.com',
-    'srb',
-    'tc',
-    '--lsp',
-    '--enable-all-experimental-lsp-features',
-    '--enable-experimental-requires-ancestor',
-    '/data/pharos/ams/current'
-  },
+  cmd = get_sorbet_cmd(),
   capabilities = capabilities
 }
 
@@ -175,9 +203,23 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
+-- https://www.reddit.com/r/neovim/comments/18skiut/problem_configuring_nvimcmp_and_luasnip/
+local has_words_before = function()
+  if vim.bo[0].buftype == 'prompt' then
+    return false
+  end
+  local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+  return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match('%s') == nil
+end
 
 -- Set up nvim-cmp.
 -- https://github.com/hrsh7th/nvim-cmp
+--
+local has_words_before = function()
+  unpack = unpack or table.unpack
+  local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+  return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
+end
 local cmp = require'cmp'
 cmp.setup({
   snippet = {
