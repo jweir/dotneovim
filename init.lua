@@ -18,7 +18,8 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup({
   'Townk/vim-autoclose',
   'fatih/vim-go',
-  {'ggml-org/llama.vim',
+  {
+    'ggml-org/llama.vim',
     init = function()
       vim.g.llama_config = {
         show_info = 0,
@@ -46,7 +47,8 @@ require('lazy').setup({
     build = './install --all',
     dir = '~/.fzf'
   },
-  {'junegunn/fzf.vim',
+  {
+    'junegunn/fzf.vim',
     config = function()
       vim.g.fzf_vim = {
         preview_window = {}
@@ -59,26 +61,9 @@ require('lazy').setup({
   'hrsh7th/cmp-nvim-lsp',
   'hrsh7th/cmp-vsnip',
   'hrsh7th/vim-vsnip',
-  {'rktjmp/lush.nvim',
+  { 'rktjmp/lush.nvim',
     { dir = '/Users/johnweir/src/github.com/jweir/trumono', lazy = false },
-  }
-  --{
-    --"zenbones-theme/zenbones.nvim",
-    ---- Optionally install Lush. Allows for more configuration or extending the colorscheme
-    ---- If you don't want to install lush, make sure to set g:zenbones_compat = 1
-    ---- In Vim, compat mode is turned on as Lush only works in Neovim.
-    --dependencies = "rktjmp/lush.nvim",
-    --lazy = false,
-    --priority = 1000,
-    ----you can set set configuration options here
-    --config = function()
-      --vim.g.zenbones_darken_comments = 45
-      --vim.g.zenbones_darkness = 'stark'
-      --vim.cmd.colorscheme('zenbones')
-      --vim.opt.termguicolors = true
-      --vim.opt.background= 'dark'
-    --end
-  --}
+  },
 })
 
 vim.cmd.colorscheme('trumono')
@@ -91,18 +76,27 @@ vim.schedule(function()
 end)
 
 
-vim.opt.directory= '/tmp/' -- Set temporary directory (don't litter local dir with swp/tmp files)
-vim.opt.swapfile = false   -- No swap files when editing please
-vim.opt.wrap     = false   -- Disable line wrapping
-vim.opt.confirm = true
+vim.opt.directory   = '/tmp/' -- Set temporary directory (don't litter local dir with swp/tmp files)
+vim.opt.swapfile    = false   -- No swap files when editing please
+vim.opt.wrap        = false   -- Disable line wrapping
+vim.opt.confirm     = true
 
 -- " use indents of 2 spaces, and have them copied down lines:
-vim.opt.expandtab = true
-vim.opt.tabstop=2
-vim.opt.softtabstop=2
-vim.opt.shiftwidth=2
-vim.opt.number = false -- no line numbers
+vim.opt.expandtab   = true
+vim.opt.tabstop     = 2
+vim.opt.softtabstop = 2
+vim.opt.shiftwidth  = 2
+vim.opt.number      = false -- no line numbers
 
+local function toggleScheme()
+  if vim.o.background == "light" then
+    vim.o.background = "dark"
+    vim.cmd("colorscheme trumono")
+  else
+    vim.o.background = "light"
+    vim.cmd("colorscheme quiet")
+  end
+end
 -- " Keybindings
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>') -- clear search
 vim.keymap.set('n', '<leader>rr', ':NERDTreeFind<CR>')
@@ -111,6 +105,7 @@ vim.keymap.set('n', 'tn', ':tabnext<CR>')
 vim.keymap.set('n', 'tN', ':tabnew<CR>')
 vim.keymap.set('n', '<Leader>s', ':%s/\\<<C-r><C-w>\\>/', { noremap = true })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+vim.keymap.set('n', '<leader>b', toggleScheme)
 
 -- LSPs
 local lsp = require('lspconfig')
@@ -143,16 +138,51 @@ local function get_sorbet_cmd()
   end
 end
 
+local t = { 1, 2, 3, 4 }
+
 local capabilities = require('cmp_nvim_lsp').default_capabilities()
-lsp.cssls.setup { capabilities = capabilities}
-lsp.cssls.setup { capabilities = capabilities}
-lsp.elmls.setup { capabilities = capabilities}
-lsp.gopls.setup { capabilities = capabilities}
-lsp.rubocop.setup { capabilities = capabilities}
-lsp.ts_ls.setup { capabilities = capabilities} -- typescript / javascript
+lsp.lua_ls.setup {
+  on_init = function(client)
+    local path = client.workspace_folders[1].name
+    if vim.loop.fs_stat(path .. '/.luarc.json') or vim.loop.fs_stat(path .. '/.luarc.jsonc') then
+      return
+    end
+
+    client.config.settings.Lua = vim.tbl_deep_extend('force', client.config.settings.Lua, {
+      runtime = {
+        -- Tell the language server which version of Lua you're using
+        -- (most likely LuaJIT in the case of Neovim)
+        version = 'LuaJIT'
+      },
+      -- Make the server aware of Neovim runtime files
+      workspace = {
+        checkThirdParty = false,
+        library = {
+          vim.env.VIMRUNTIME
+          -- Depending on the usage, you might want to add additional paths here.
+          -- "${3rd}/luv/library"
+          -- "${3rd}/busted/library",
+        }
+        -- or pull in all of 'runtimepath'. NOTE: this is a lot slower
+        -- library = vim.api.nvim_get_runtime_file("", true)
+      }
+    })
+  end,
+  settings = {
+    Lua = {}
+  }
+}
+lsp.cssls.setup { capabilities = capabilities }
+lsp.elmls.setup { capabilities = capabilities }
+lsp.gopls.setup { capabilities = capabilities }
+lsp.rubocop.setup { capabilities = capabilities }
+lsp.ts_ls.setup { capabilities = capabilities } -- typescript / javascript
 lsp.sorbet.setup {
   cmd = get_sorbet_cmd(),
-  capabilities = capabilities
+  capabilities = capabilities,
+  init_options = {
+    highlightUntyped = "everywhere-but-tests"
+  }
 }
 
 vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
@@ -191,9 +221,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
     local client = assert(vim.lsp.get_client_by_id(ev.data.client_id))
 
     if not client:supports_method('textDocument/willSaveWaitUntil')
-      and client:supports_method('textDocument/formatting') then
+        and client:supports_method('textDocument/formatting') then
       vim.api.nvim_create_autocmd('BufWritePre', {
-        group = vim.api.nvim_create_augroup('my.lsp', {clear=false}),
+        group = vim.api.nvim_create_augroup('my.lsp', { clear = false }),
         buffer = ev.buf,
         callback = function()
           vim.lsp.buf.format({ bufnr = ev.buf, id = client.id, timeout_ms = 1000 })
@@ -203,15 +233,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
--- https://www.reddit.com/r/neovim/comments/18skiut/problem_configuring_nvimcmp_and_luasnip/
-local has_words_before = function()
-  if vim.bo[0].buftype == 'prompt' then
-    return false
-  end
-  local line, col = unpack(vim.api.nvim_win_get_cursor(0))
-  return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match('%s') == nil
-end
-
 -- Set up nvim-cmp.
 -- https://github.com/hrsh7th/nvim-cmp
 --
@@ -220,7 +241,7 @@ local has_words_before = function()
   local line, col = unpack(vim.api.nvim_win_get_cursor(0))
   return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
 end
-local cmp = require'cmp'
+local cmp = require 'cmp'
 cmp.setup({
   snippet = {
     expand = function(args)
