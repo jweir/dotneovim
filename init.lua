@@ -41,7 +41,6 @@ require('lazy').setup({
   'tpope/vim-surround',
   'tpope/vim-unimpaired',
   'vim-ruby/vim-ruby',
-  'rktjmp/lush.nvim',
   {
     'junegunn/fzf',
     build = './install --all',
@@ -57,10 +56,27 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>ff', '<cmd>Files!<CR>', { desc = 'FZF Find Files' })
     end
   },
-  'hrsh7th/nvim-cmp',
-  'hrsh7th/cmp-nvim-lsp',
-  'hrsh7th/cmp-vsnip',
-  'hrsh7th/vim-vsnip',
+  {
+    'saghen/blink.cmp',
+
+    -- optional: provides snippets for the snippet source
+    dependencies = { 'rafamadriz/friendly-snippets' },
+    opts = {
+      keymap = { preset = 'super-tab' },
+      signature = { enabled = true },
+
+      appearance = {
+        -- 'mono' (default) for 'Nerd Font Mono' or 'normal' for 'Nerd Font'
+        -- Adjusts spacing to ensure icons are aligned
+        nerd_font_variant = 'mono'
+      },
+      sources = {
+        default = { 'lsp', 'path', 'snippets', 'buffer' },
+      },
+      fuzzy = { implementation = "lua" }
+    },
+    opts_extend = { "sources.default" }
+  },
   { 'rktjmp/lush.nvim',
     { dir = '/Users/johnweir/src/github.com/jweir/trumono', lazy = false },
   },
@@ -138,9 +154,17 @@ local function get_sorbet_cmd()
   end
 end
 
-local t = { 1, 2, 3, 4 }
+local capabilities = {
+  textDocument = {
+    foldingRange = {
+      dynamicRegistration = false,
+      lineFoldingOnly = true
+    }
+  }
+}
 
-local capabilities = require('cmp_nvim_lsp').default_capabilities()
+capabilities = require('blink.cmp').get_lsp_capabilities(capabilities)
+
 lsp.lua_ls.setup {
   on_init = function(client)
     local path = client.workspace_folders[1].name
@@ -231,52 +255,4 @@ vim.api.nvim_create_autocmd('LspAttach', {
       })
     end
   end,
-})
-
--- Set up nvim-cmp.
--- https://github.com/hrsh7th/nvim-cmp
---
-local has_words_before = function()
-  unpack = unpack or table.unpack
-  local line, col = unpack(vim.api.nvim_win_get_cursor(0))
-  return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
-end
-local cmp = require 'cmp'
-cmp.setup({
-  snippet = {
-    expand = function(args)
-      vim.fn["vsnip#anonymous"](args.body)
-    end,
-  },
-  mapping = cmp.mapping.preset.insert({
-    ["<Tab>"] = cmp.mapping(function(fallback)
-      if cmp.visible() then
-        cmp.select_next_item()
-      elseif vim.fn["vsnip#available"](1) == 1 then
-        feedkey("<Plug>(vsnip-expand-or-jump)", "")
-      elseif has_words_before() then
-        cmp.complete()
-      else
-        fallback()
-      end
-    end, { "i", "s" }),
-
-    ["<S-Tab>"] = cmp.mapping(function()
-      if cmp.visible() then
-        cmp.select_prev_item()
-      elseif vim.fn["vsnip#jumpable"](-1) == 1 then
-        feedkey("<Plug>(vsnip-jump-prev)", "")
-      end
-    end, { "i", "s" }),
-    ['<C-b>'] = cmp.mapping.scroll_docs(-4), -- in the docs windo
-    ['<C-f>'] = cmp.mapping.scroll_docs(4),
-    ['<C-Space>'] = cmp.mapping.complete(),
-    ['<C-e>'] = cmp.mapping.abort(),
-    ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-  }),
-  sources = cmp.config.sources({
-    { name = 'nvim_lsp' },
-    { name = 'buffer' },
-    { name = 'vsnip' },
-  })
 })
