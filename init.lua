@@ -108,6 +108,8 @@ require('lazy').setup({
             return { 'buffer' }
           elseif vim.bo.filetype == 'lua' then
             return { 'lsp', 'path' }
+          elseif vim.bo.filetype == 'elm' then
+            return { 'lsp' }
           else
             return { 'lsp', 'path', 'snippets', 'buffer' }
           end
