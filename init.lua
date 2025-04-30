@@ -41,6 +41,7 @@ require('lazy').setup({
   'tpope/vim-surround',
   'tpope/vim-unimpaired',
   'vim-ruby/vim-ruby',
+  { 'nvim-treesitter/nvim-treesitter', build= ':TSUpdate' },
   {
     'junegunn/fzf',
     build = './install --all',
