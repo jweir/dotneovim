@@ -40,8 +40,9 @@ require('lazy').setup({
   'tpope/vim-rails',
   'tpope/vim-surround',
   'tpope/vim-unimpaired',
+  'tpope/vim-rhubarb',
   'vim-ruby/vim-ruby',
-  { 'nvim-treesitter/nvim-treesitter', build= ':TSUpdate' },
+  { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
   {
     'junegunn/fzf',
     build = './install --all',
@@ -134,6 +135,17 @@ vim.schedule(function()
   vim.opt.clipboard = 'unnamedplus'
 end)
 
+local function openAmsTestFailuresQuickFix()
+  vim.cmd.cfile(os.getenv("PHAROSPATH") .. "/.failed_tests.txt")
+  vim.cmd.copen()
+end
+
+-- open AMS failed tests in quickfix
+vim.keymap.set('n', '<leader>tq', openAmsTestFailuresQuickFix, { desc = 'open failed tests in quickfix (ams test)' })
+
+-- disable side scrolling
+vim.keymap.set('n', '<ScrollWheelRight>', '<nop>')
+vim.keymap.set('n', '<ScrollWheelLeft>', '<nop>')
 
 vim.opt.directory   = '/tmp/' -- Set temporary directory (don't litter local dir with swp/tmp files)
 vim.opt.swapfile    = false   -- No swap files when editing please
@@ -165,6 +177,30 @@ vim.keymap.set('n', 'tN', ':tabnew<CR>')
 vim.keymap.set('n', '<Leader>s', ':%s/\\<<C-r><C-w>\\>/', { noremap = true })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 vim.keymap.set('n', '<leader>b', toggleScheme)
+
+local function setDiagnostics(severity)
+  vim.diagnostic.config({
+    virtual_text = false, --{ severity = { min = severity, }, },
+    float = { severity = { min = severity, }, },
+    signs = { severity = { min = severity, }, },
+    underline = { severity = { min = severity, }, },
+  })
+end
+
+local function setDiagnosticsWarning()
+  setDiagnostics(vim.diagnostic.severity.WARN)
+end
+
+local function setDiagnosticsInfo()
+  setDiagnostics(vim.diagnostic.severity.INFO)
+end
+
+setDiagnostics(vim.diagnostic.severity.WARN)
+
+--vim.keymap.set('n', '<leader>di', setDiagnosticsInfo)
+--vim.keymap.set('n', '<leader>dw', setDiagnosticsWarning)
+
+
 
 -- LSPs
 local lsp = require('lspconfig')
@@ -239,6 +275,28 @@ lsp.lua_ls.setup {
     Lua = {}
   }
 }
+
+
+local culsp_group = vim.api.nvim_create_augroup("CulspSettings", { clear = true })
+--vim.api.nvim_create_autocmd({ "FileType" }, {
+--pattern = "text",
+--group = culsp_group,
+--callback = function()
+--vim.lsp.start({
+--cmd = { "culsp" },
+--filetypes = { 'text' },
+--root_dir = vim.fn.getcwd(), -- Use PWD as project root dir.
+--})
+--end
+--})
+
+--vim.lsp.start({
+--cmd = { "culsp" },
+--filetypes = { 'text' },
+--root_dir = vim.fn.getcwd(), -- Use PWD as project root dir.
+--})
+
+
 lsp.cssls.setup { capabilities = capabilities }
 lsp.elmls.setup { capabilities = capabilities }
 lsp.gopls.setup { capabilities = capabilities }
