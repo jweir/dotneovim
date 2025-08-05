@@ -18,16 +18,6 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup({
   'Townk/vim-autoclose',
   'fatih/vim-go',
-  {
-    'ggml-org/llama.vim',
-    init = function()
-      vim.g.llama_config = {
-        show_info = 0,
-        keymap_accept_full = "<Space><Space>",
-        keymap_accept_line = "<S-Space>",
-      }
-    end
-  },
   'godlygeek/tabular',
   'neovim/nvim-lspconfig',
   'scrooloose/nerdcommenter',
