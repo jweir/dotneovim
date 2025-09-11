@@ -158,6 +158,7 @@ local function toggleScheme()
     vim.cmd("colorscheme quiet")
   end
 end
+
 -- " Keybindings
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>') -- clear search
 vim.keymap.set('n', '<leader>rr', ':NERDTreeFind<CR>')
@@ -165,7 +166,11 @@ vim.keymap.set('n', 'tp', ':tabprevious<CR>')
 vim.keymap.set('n', 'tn', ':tabnext<CR>')
 vim.keymap.set('n', 'tN', ':tabnew<CR>')
 vim.keymap.set('n', '<Leader>s', ':%s/\\<<C-r><C-w>\\>/', { noremap = true })
-vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+
+vim.keymap.set('n', '<leader>d', function()
+  vim.diagnostic.setqflist({ severity = { min = vim.diagnostic.severity.ERROR } })
+end, { desc = 'Show only errors in quickfix' })
+
 vim.keymap.set('n', '<leader>b', toggleScheme)
 
 local function setDiagnostics(severity)
