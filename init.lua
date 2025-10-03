@@ -32,6 +32,16 @@ require('lazy').setup({
   'tpope/vim-unimpaired',
   'tpope/vim-rhubarb',
   'vim-ruby/vim-ruby',
+  {
+    "nvim-neotest/neotest",
+    dependencies = {
+      "nvim-neotest/nvim-nio",
+      "nvim-lua/plenary.nvim",
+      "antoinemadec/FixCursorHold.nvim",
+      "nvim-treesitter/nvim-treesitter",
+      "zidhuss/neotest-minitest"
+    }
+  },
   { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
   {
     'junegunn/fzf',
@@ -210,12 +220,9 @@ local function get_sorbet_cmd()
     return {
       'ssh',
       'deploy@dev.pharosams.com',
-      'srb',
-      'tc',
-      '--lsp',
-      '--enable-all-experimental-lsp-features',
-      '--enable-experimental-requires-ancestor',
-      '/data/pharos/ams/current'
+      '-q',
+      '-t',
+      '/data/pharos/ams/current/bin/lsp'
     }
   else
     -- Default local sorbet setup
@@ -351,4 +358,23 @@ vim.api.nvim_create_autocmd('LspAttach', {
       })
     end
   end,
+})
+
+require("nvim-treesitter.configs").setup({
+  ensure_installed = "ruby",
+  sync_install = true,
+})
+
+require("neotest").setup({
+  adapters = {
+    require("neotest-minitest"),
+  },
+})
+
+require("neotest-minitest")({
+  test_cmd = function()
+    return vim.tbl_flatten({
+      "bin/test",
+    })
+  end
 })
