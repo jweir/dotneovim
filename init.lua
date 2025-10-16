@@ -169,6 +169,7 @@ local function toggleScheme()
   end
 end
 
+
 -- " Keybindings
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>') -- clear search
 vim.keymap.set('n', '<leader>rr', ':NERDTreeFind<CR>')
