@@ -54,7 +54,7 @@ require('lazy').setup({
       vim.g.fzf_vim = {
         preview_window = {}
       }
-      vim.keymap.set('n', '<leader>fa', ':Ag!', { desc = 'FZF search files' })
+      vim.keymap.set('n', '<leader>fa', ':Ag ', { desc = 'FZF search files' })
       vim.keymap.set('n', '<leader>ff', '<cmd>Files!<CR>', { desc = 'FZF Find Files' })
     end
   },
