@@ -39,7 +39,7 @@ require('lazy').setup({
       "nvim-lua/plenary.nvim",
       "antoinemadec/FixCursorHold.nvim",
       "nvim-treesitter/nvim-treesitter",
-      "zidhuss/neotest-minitest"
+      "volodya-lombrozo/neotest-ruby-minitest"
     }
   },
   { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
@@ -141,7 +141,7 @@ local function openAmsTestFailuresQuickFix()
 end
 
 -- open AMS failed tests in quickfix
-vim.keymap.set('n', '<leader>tq', openAmsTestFailuresQuickFix, { desc = 'open failed tests in quickfix (ams test)' })
+vim.keymap.set('n', '<leader>t', openAmsTestFailuresQuickFix, { desc = 'open failed tests in quickfix (ams test)' })
 
 -- disable side scrolling
 vim.keymap.set('n', '<ScrollWheelRight>', '<nop>')
@@ -176,7 +176,7 @@ vim.keymap.set('n', '<leader>rr', ':NERDTreeFind<CR>')
 vim.keymap.set('n', 'tp', ':tabprevious<CR>')
 vim.keymap.set('n', 'tn', ':tabnext<CR>')
 vim.keymap.set('n', 'tN', ':tabnew<CR>')
-vim.keymap.set('n', '<Leader>s', ':%s/\\<<C-r><C-w>\\>/', { noremap = true })
+vim.keymap.set('n', '<leader>s', ':%s/\\<<C-r><C-w>\\>/', { noremap = true })
 
 vim.keymap.set('n', '<leader>d', function()
   vim.diagnostic.setqflist({ severity = { min = vim.diagnostic.severity.ERROR } })
@@ -207,9 +207,6 @@ setDiagnostics(vim.diagnostic.severity.WARN)
 --vim.keymap.set('n', '<leader>dw', setDiagnosticsWarning)
 
 
-
--- LSPs
-local lsp = require('lspconfig')
 
 -- Function to determine the correct command based on current directory
 local function get_sorbet_cmd()
@@ -247,7 +244,7 @@ local capabilities = {
 
 capabilities = require('blink.cmp').get_lsp_capabilities(capabilities)
 
-lsp.lua_ls.setup {
+vim.lsp.config('lua_ls', {
   on_init = function(client)
     local path = client.workspace_folders[1].name
     if vim.loop.fs_stat(path .. '/.luarc.json') or vim.loop.fs_stat(path .. '/.luarc.jsonc') then
@@ -277,7 +274,8 @@ lsp.lua_ls.setup {
   settings = {
     Lua = {}
   }
-}
+})
+vim.lsp.enable('lua_ls')
 
 
 local culsp_group = vim.api.nvim_create_augroup("CulspSettings", { clear = true })
@@ -300,18 +298,24 @@ local culsp_group = vim.api.nvim_create_augroup("CulspSettings", { clear = true 
 --})
 
 
-lsp.cssls.setup { capabilities = capabilities }
-lsp.elmls.setup { capabilities = capabilities }
-lsp.gopls.setup { capabilities = capabilities }
-lsp.rubocop.setup { capabilities = capabilities }
-lsp.ts_ls.setup { capabilities = capabilities } -- typescript / javascript
-lsp.sorbet.setup {
+vim.lsp.config('cssls', { capabilities = capabilities })
+vim.lsp.enable('cssls')
+vim.lsp.config('elmls', { capabilities = capabilities })
+vim.lsp.enable('elmls')
+vim.lsp.config('gopls', { capabilities = capabilities })
+vim.lsp.enable('gopls')
+vim.lsp.config('rubocop', { capabilities = capabilities })
+vim.lsp.enable('rubocop')
+vim.lsp.config('ts_ls', { capabilities = capabilities })
+vim.lsp.enable('ts_ls')
+vim.lsp.config('sorbet', {
   cmd = get_sorbet_cmd(),
   capabilities = capabilities,
   init_options = {
     highlightUntyped = "everywhere-but-tests"
   }
-}
+})
+vim.lsp.enable('sorbet')
 
 vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
 vim.keymap.set('n', '[d', vim.diagnostic.goto_prev)
@@ -368,14 +372,69 @@ require("nvim-treesitter.configs").setup({
 
 require("neotest").setup({
   adapters = {
-    require("neotest-minitest"),
+    require("neotest-ruby-minitest")({
+      --command = "bin/test"
+    }),
   },
 })
 
-require("neotest-minitest")({
-  test_cmd = function()
-    return vim.tbl_flatten({
-      "bin/test",
-    })
+vim.api.nvim_create_user_command('SchemaGrep', function(opts)
+  local schema_file = vim.fn.getcwd() .. '/db/schema.rb'
+
+  if vim.fn.filereadable(schema_file) == 0 then
+    vim.notify('db/schema.rb not found', vim.log.levels.ERROR)
+    return
   end
-})
+
+  local query = opts.args
+  if query == '' then
+    vim.notify('Please provide a search term', vim.log.levels.WARN)
+    return
+  end
+
+  vim.cmd(string.format('vimgrep /%s/j %s', query, schema_file))
+  vim.cmd('copen')
+end, { nargs = 1 })
+
+
+vim.keymap.set('n', '<leader>ad', ':SchemaGrep <C-r><C-w>', { noremap = true })
+
+
+vim.api.nvim_create_user_command('OpenFixtureDir', function()
+  local current_file = vim.fn.expand('%:p')
+  local relative_path = vim.fn.fnamemodify(current_file, ':.')
+
+  local fixture_path = nil
+
+  -- Check if path starts with 'app/iso/'
+  local app_match = relative_path:match('^app/iso/(.+)')
+  if app_match then
+    -- Extract directory part only
+    local dir_part = vim.fn.fnamemodify(app_match, ':h')
+    fixture_path = 'test/fixtures/iso/' .. dir_part
+  else
+    -- Check if path starts with 'test/iso/'
+    local test_match = relative_path:match('^test/iso/(.+)')
+    if test_match then
+      -- Extract directory part only
+      local dir_part = vim.fn.fnamemodify(test_match, ':h')
+      fixture_path = 'test/fixtures/iso/' .. dir_part
+    end
+  end
+
+  if fixture_path then
+    vim.fn.mkdir(fixture_path, 'p')
+    vim.cmd('NERDTree ' .. fixture_path)
+  else
+    print('Current file is not in app/iso/ or test/iso/ directory')
+  end
+end, {})
+
+vim.keymap.set('n', '<leader>af', ':OpenFixtureDir<CR>', { noremap = true })
+
+-- copy current path and line number to clipboard
+vim.keymap.set('n', '<leader>yp', function()
+  local path = vim.fn.expand('%') .. ':' .. vim.fn.line('.')
+  vim.fn.setreg('+', path)
+  print('Copied: ' .. path)
+end, { desc = 'Copy file path with line number' })
