@@ -56,6 +56,20 @@ require('lazy').setup({
       }
       vim.keymap.set('n', '<leader>fa', ':Ag ', { desc = 'FZF search files' })
       vim.keymap.set('n', '<leader>ff', '<cmd>Files!<CR>', { desc = 'FZF Find Files' })
+
+      vim.g.fzf_action = {
+        ['ctrl-q'] = function(lines)
+          local items = vim.tbl_map(function(line)
+            return { filename = line }
+          end, lines)
+          vim.fn.setqflist(items)
+          vim.cmd('copen')
+          vim.cmd('cc')
+        end,
+        ['ctrl-t'] = 'tab split',
+        ['ctrl-x'] = 'split',
+        ['ctrl-v'] = 'vsplit',
+      }
     end
   },
   {
