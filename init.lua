@@ -32,17 +32,7 @@ require('lazy').setup({
   'tpope/vim-unimpaired',
   'tpope/vim-rhubarb',
   'vim-ruby/vim-ruby',
-  {
-    "nvim-neotest/neotest",
-    dependencies = {
-      "nvim-neotest/nvim-nio",
-      "nvim-lua/plenary.nvim",
-      "antoinemadec/FixCursorHold.nvim",
-      "nvim-treesitter/nvim-treesitter",
-      "volodya-lombrozo/neotest-ruby-minitest"
-    }
-  },
-  { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
+
   {
     'junegunn/fzf',
     build = './install --all',
@@ -77,7 +67,7 @@ require('lazy').setup({
     'saghen/blink.cmp',
 
     -- optional: provides snippets for the snippet source
-    dependencies = { 'rafamadriz/friendly-snippets' },
+    dependencies = { 'rafamadriz/friendly-snippets', 'saghen/blink.lib' },
     opts = {
       signature = { enabled = true },
 
@@ -379,17 +369,10 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
-require("nvim-treesitter.configs").setup({
-  ensure_installed = "ruby",
-  sync_install = true,
-})
-
-require("neotest").setup({
-  adapters = {
-    require("neotest-ruby-minitest")({
-      --command = "bin/test"
-    }),
-  },
+vim.api.nvim_create_autocmd('FileType', {
+  callback = function()
+    pcall(vim.treesitter.start)
+  end,
 })
 
 vim.api.nvim_create_user_command('SchemaGrep', function(opts)
