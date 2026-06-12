@@ -223,7 +223,7 @@ local function get_sorbet_cmd()
       'ssh',
       'deploy@dev.pharosams.com',
       '-q',
-      '-t',
+      '-T',
       '/data/pharos/ams/current/bin/lsp'
     }
   else
@@ -248,7 +248,10 @@ local capabilities = {
 
 capabilities = require('blink.cmp').get_lsp_capabilities(capabilities)
 
+vim.lsp.enable('terraformls')
+
 vim.lsp.config('lua_ls', {
+  capabilities = capabilities,
   on_init = function(client)
     local path = client.workspace_folders[1].name
     if vim.loop.fs_stat(path .. '/.luarc.json') or vim.loop.fs_stat(path .. '/.luarc.jsonc') then
